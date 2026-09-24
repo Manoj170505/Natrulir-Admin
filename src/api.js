@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://natrulir-backend.onrender.com/api';
 
 export const getDashboardStats = async () => {
   const res = await fetch(`${API_BASE_URL}/stats/dashboard`);
