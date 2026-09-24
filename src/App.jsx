@@ -5,7 +5,9 @@ import OrdersView from './components/OrdersView';
 import ProductsView from './components/ProductsView';
 import ProductFormModal from './components/ProductFormModal';
 import OrderDetailModal from './components/OrderDetailModal';
+import { AlertTriangle, RefreshCw, Server, ExternalLink } from 'lucide-react';
 import {
+  API_BASE_URL,
   getDashboardStats,
   getAdminProducts,
   createAdminProduct,
@@ -41,7 +43,8 @@ export default function App() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
 
-  // Toast message
+  // Connection / Error state
+  const [connectionError, setConnectionError] = useState('');
   const [toast, setToast] = useState('');
 
   const showToast = (msg) => {
@@ -52,10 +55,14 @@ export default function App() {
   // Load stats
   const loadStats = async () => {
     try {
+      setConnectionError('');
       const data = await getDashboardStats();
-      setStats(data);
+      if (data) {
+        setStats(data);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch dashboard stats:', e);
+      setConnectionError(e.message || 'Could not connect to backend database.');
     }
   };
 
@@ -69,7 +76,8 @@ export default function App() {
       });
       setProducts(data);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch products:', e);
+      setConnectionError(e.message || 'Could not fetch products from backend.');
     }
     setProductsLoading(false);
   };
@@ -84,7 +92,8 @@ export default function App() {
       });
       setOrders(data);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch orders:', e);
+      setConnectionError(e.message || 'Could not fetch orders from backend.');
     }
     setOrdersLoading(false);
   };
@@ -107,6 +116,7 @@ export default function App() {
   }, [orderStatusFilter, orderSearch, activeTab]);
 
   const handleRefreshAll = () => {
+    setConnectionError('');
     loadStats();
     loadProducts();
     loadOrders();
@@ -194,8 +204,35 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
         
+        {/* Backend Connectivity Banner if error */}
+        {connectionError && (
+          <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-xs text-amber-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <strong className="block font-bold">Backend Connection Notice:</strong>
+                <p className="mt-0.5 text-[11px] text-amber-800">
+                  Target API: <code className="bg-amber-100 px-1.5 py-0.5 rounded font-semibold">{API_BASE_URL}</code>
+                </p>
+                <p className="mt-1 text-[11px] text-amber-700">
+                  {connectionError.includes('IP') || connectionError.includes('Server selection') || connectionError.includes('failed')
+                    ? 'MongoDB Atlas requires Network Access whitelist (0.0.0.0/0) to allow cloud servers like Render to connect.'
+                    : 'The backend service may be waking up or configuring. Please allow up to 45 seconds and retry.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleRefreshAll}
+              className="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Retry Connection
+            </button>
+          </div>
+        )}
+
         {/* Toast Alert */}
         {toast && (
           <div className="fixed bottom-6 right-6 z-50 bg-[#1E3A27] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-semibold animate-fadeIn border border-[#A3D977]/30">
